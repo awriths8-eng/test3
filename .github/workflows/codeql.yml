@@ -1,5 +1,4 @@
 name: "CodeQL Advanced"
-
 on:
   push:
     branches: [ "main" ]
@@ -7,7 +6,6 @@ on:
     branches: [ "main" ]
   schedule:
     - cron: '19 13 * * 6'
-
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
@@ -17,19 +15,16 @@ jobs:
       packages: read
       actions: read
       contents: read
-
     strategy:
       fail-fast: false
       matrix:
         include:
         - language: c-cpp
-          build-mode: manual  # 設為手動模式
-
+          build-mode: manual
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # 初始化 CodeQL，升級至 v4 並開啟 security-and-quality 規則庫
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v4
       with:
@@ -37,12 +32,11 @@ jobs:
         build-mode: ${{ matrix.build-mode }}
         queries: security-and-quality
 
-    # 手動指定 GCC 編譯 main.c（這裡取代原本失敗的 autobuild 步驟）
-    - name: Manual Build Step
+    # 手動編譯步驟：因為專案沒有 Makefile / CMake，直接用 gcc 編譯
+    - name: Build
       run: |
         gcc -c main.c -o main.o
 
-    # 執行 CodeQL 分析
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4
       with:
