@@ -41,3 +41,11 @@ jobs:
       uses: github/codeql-action/analyze@v4
       with:
         category: "/language:${{matrix.language}}"
+
+    # 加上這段：將產出的 SARIF 檔案上傳到 Actions 頁面供點擊下載
+    - name: Upload SARIF Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: codeql-sarif-report
+        path: ../../../_temp/codeql_databases/c-cpp/results/*.sarif
+        # 或者使用標準預設路徑: /home/runner/work/_temp/codeql_databases/        
