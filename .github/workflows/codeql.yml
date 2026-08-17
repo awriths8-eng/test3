@@ -37,15 +37,18 @@ jobs:
       run: |
         gcc -c main.c -o main.o
 
+    # 1. 執行 CodeQL 分析，並指定 output 輸出路徑
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4
       with:
         category: "/language:${{matrix.language}}"
+        # 👇 關鍵新增這行：指定 SARIF 產出資料夾
+        output: '${{ github.workspace }}/sarif-results'
 
-    # 方式 A（最推薦）：使用 GitHub 官方提供的特化 Action 匯出 SARIF
+    # 2. 上傳產出的 SARIF 檔案
     - name: Upload SARIF Artifact
       uses: actions/upload-artifact@v4
       with:
         name: codeql-sarif-report
-        # 使用 runner.temp 取得絕對路徑，避開相對路徑 '..' 限制
-        path: ${{ runner.temp }}/codeql_databases/c-cpp/results/*.sarif  
+        # 👇 讀取剛才產出的資料夾
+        path: ${{ github.workspace }}/sarif-results/*.sarif
