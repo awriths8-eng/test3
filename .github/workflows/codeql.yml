@@ -23,13 +23,13 @@ jobs:
       matrix:
         include:
         - language: c-cpp
-          build-mode: manual  # 必須設為 manual
+          build-mode: manual  # 設為手動模式
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # 初始化 CodeQL，升級至 v4 並載入廣義的 Security & Quality 規則庫
+    # 初始化 CodeQL，升級至 v4 並開啟 security-and-quality 規則庫
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v4
       with:
@@ -37,12 +37,12 @@ jobs:
         build-mode: ${{ matrix.build-mode }}
         queries: security-and-quality
 
-    # 使用 GCC 手動編譯 main.c（移除 autobuild 步驟，改用手動編譯）
+    # 手動指定 GCC 編譯 main.c（這裡取代原本失敗的 autobuild 步驟）
     - name: Manual Build Step
       run: |
         gcc -c main.c -o main.o
 
-    # 執行掃描分析，升級至 v4
+    # 執行 CodeQL 分析
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4
       with:
