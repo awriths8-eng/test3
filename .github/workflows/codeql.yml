@@ -23,13 +23,13 @@ jobs:
       matrix:
         include:
         - language: c-cpp
-          build-mode: none
+          build-mode: autobuild
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # 初始化 CodeQL，並指定開啟「安全與程式碼品質 (security-and-quality)」廣義規則包
+    # 初始化 CodeQL 工具與查詢包
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
       with:
@@ -37,6 +37,11 @@ jobs:
         build-mode: ${{ matrix.build-mode }}
         queries: security-and-quality
 
+    # Autobuild 模式會自動呼叫預設編譯器（如 GCC/Clang/Make）擷取完整的控制流圖 (CFG)
+    - name: Attempt Autobuild
+      uses: github/codeql-action/autobuild@v3
+
+    # 執行 CodeQL 漏洞與品質分析
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
       with:
