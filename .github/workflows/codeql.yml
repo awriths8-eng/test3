@@ -42,10 +42,10 @@ jobs:
       with:
         category: "/language:${{matrix.language}}"
 
-    # 加上這段：將產出的 SARIF 檔案上傳到 Actions 頁面供點擊下載
+    # 方式 A（最推薦）：使用 GitHub 官方提供的特化 Action 匯出 SARIF
     - name: Upload SARIF Artifact
       uses: actions/upload-artifact@v4
       with:
         name: codeql-sarif-report
-        path: ../../../_temp/codeql_databases/c-cpp/results/*.sarif
-        # 或者使用標準預設路徑: /home/runner/work/_temp/codeql_databases/        
+        # 使用 runner.temp 取得絕對路徑，避開相對路徑 '..' 限制
+        path: ${{ runner.temp }}/codeql_databases/c-cpp/results/*.sarif  
