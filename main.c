@@ -1,6 +1,5 @@
 #include "main.h"
 
-// 1234567890123
 // ---------------------------------------------------------------------------
 // 測試用全局變數定義（確保 AC5 編譯時 Symbol 可正確 Resolved）
 // ---------------------------------------------------------------------------
@@ -57,6 +56,9 @@ void SCPI_ChromaSetComparItemFun(void)
     uint8_t test_check1 = 1;
     uint8_t test_check2 = 2;
 
+    // [異常/錯誤] i 為 uint8_t，但 SCPIIndexPara 是 uint16_t，最大可到 65535。
+    // 若 SCPIIndexPara 介於 100~255，i 會超過 SCPIParaValue[100] 的合法範圍造成越界讀取；
+    // 若 SCPIIndexPara > 255，i（uint8_t）永遠追不上，會在 255 溢位歸零，造成無窮迴圈（DoS 風險）。
     for (i = 0; i < SCPIIndexPara; i++)
     {
         if (SCPIParaValue[i] == ',')
@@ -65,6 +67,11 @@ void SCPI_ChromaSetComparItemFun(void)
             if (c[0] == 1)
             {
                 s1 = 0;
+                // [嚴重異常] 整數下溢：若第一個逗號出現在 i = 0（字串開頭就是逗號），
+                // e1 = (uint8_t)(0 - 1) = 255，而非預期的 -1。
+                // 會導致下方 for (j = s1; j <= e1; j++) 從 0 跑到 255（跑 256 次），
+                // 造成 FunNamePara[7]（stack buffer）嚴重溢位寫入，
+                // 以及 SCPIParaValue[j] 讀取超出其 100 bytes 範圍。可被輸入資料直接觸發。
                 e1 = i - 1;
             }
             else
@@ -92,6 +99,9 @@ void SCPI_ChromaSetComparItemFun(void)
         {
             for (j = s1; j <= e1; j++)
             {
+                // [異常] FunNamePara[7] 寫入沒有邊界檢查。
+                // 若逗號分段字串長度 >= 7（或上方 e1 下溢時），c[2] 會超過 6，
+                // 造成堆疊緩衝區溢位寫入（stack buffer overflow）。
                 FunNamePara[c[2]] = SCPIParaValue[j];
                 c[2]++;
             }
@@ -100,6 +110,9 @@ void SCPI_ChromaSetComparItemFun(void)
                 S = strcmp(MeasView_S[j], upper(FunNamePara));
                 if (S == 0)
                 {
+                    // [異常] R[17] 寫入沒有邊界檢查。
+                    // c[1] 完全由輸入字串中有效逗號分段數量決定，若超過 17 筆，
+                    // 這裡會先於下方 SetupCompareValue[7] = R[j] 讀取端更早發生寫入越界，是問題根源。
                     R[c[1]] = j + 1;
                     c[1]++;
                     break;
@@ -120,10 +133,14 @@ void SCPI_ChromaSetComparItemFun(void)
     for (i = Elem; i < Elem + 1; i++)
     {
         SetupCompareElemAllValue = i;
+        // [異常] for (j = 0; j < 20; j++) 上界寫死為 20，
+        // 但下方 R[17] 只宣告 17 個元素；j 到 17、18、19 時 R[j] 會越界讀取（CodeQL: cpp/constant-array-overflow）。
         for (j = 0; j < 20; j++)
         {
             switch (i)
             {
+            // [異常] switch (i) 沒有 default 分支：若 Elem（即 SCPIChannel）不是 1~4，
+            // 會靜默不做任何事而不報錯，容易埋藏隱藏 bug。
             case 1:
                 SetupCompareItemValue1[j][0] = 29;
                 break;
@@ -141,6 +158,8 @@ void SCPI_ChromaSetComparItemFun(void)
             SetupCompareValue[6] = j + 1;
             DecideComparePage();
             ParaValueToFram(29, 6, 8);
+            // [異常] R[17] 陣列越界讀取：當 j = 17, 18, 19 時，R[j] 超出宣告範圍。
+            // CodeQL 掃描規則 cpp/constant-array-overflow 已標記此行（off-by-3）。
             SetupCompareValue[7] = R[j];
             ParaValueToFram(29, 7, 8);
             SCPI_SetComparItemMaxMin(1, i, j + 1, 0);
@@ -163,6 +182,7 @@ void SCPI_ChromaSetComparItemFun(void)
         {
             switch (i)
             {
+            // [異常] 同上，switch (i) 缺少 default 分支。
             case 1:
                 SetupCompareItemValue1[j][0] = R[j];
                 break;
@@ -190,6 +210,8 @@ void SCPI_ChromaSetComparItemFun(void)
 
     DcideCompareElemItem();
 
+    // [異常] 條件恆為 false：test_check1 不可能同時 >= 8 且 <= 4，
+    // 這段程式碼永遠不會被執行到（CodeQL 已標記為「比較結果始終相同」）。
     if (test_check1 >= 8 && test_check1 <= 4)
     {
         test_check2 = 99;
