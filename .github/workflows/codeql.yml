@@ -30,7 +30,7 @@ jobs:
       with:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
-        queries: security-and-quality
+        queries: security-extended, security-and-quality, security-experimental
 
     # 手動編譯步驟：因為專案沒有 Makefile / CMake，直接用 gcc 編譯
     - name: Build
